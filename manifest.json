@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Simple Image Viewer",
+  "name": "Image Viewer",
   "version": "1.0.0",
-  "description": "View and download images with simple buttons",
+  "description": "View and download images with simple buttons, including infinite-scroll grids like Google Images",
   "permissions": ["downloads"],
   "host_permissions": ["<all_urls>"],
   "background": {

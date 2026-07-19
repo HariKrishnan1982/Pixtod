@@ -1,30 +1,89 @@
-.simple-img-buttons {
+.ivx-btn-container {
+  position: absolute;
+  top: 6px;
+  right: 6px;
   display: flex;
-  gap: 10px;
-  margin: 10px 0;
-  padding: 5px 0;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 2147483647; /* stay above the host page's own UI */
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(-2px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.simple-img-buttons button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
+/* Reveal on hover of the tile itself, so the UI stays out of the way
+   until the user is actually looking at that image. */
+:hover > .ivx-btn-container,
+.ivx-btn-container:hover,
+.ivx-btn-container:focus-within {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ivx-btn {
+  all: unset;
+  box-sizing: border-box;
   cursor: pointer;
-  transition: opacity 0.2s;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 
-.simple-img-buttons button:hover {
-  opacity: 0.9;
+.ivx-btn svg {
+  display: block;
 }
 
-.simple-img-buttons button:first-child {
-  background: #4a90d9;
-  color: white;
+.ivx-btn:hover {
+  transform: translateY(-1px) scale(1.06);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.16);
 }
 
-.simple-img-buttons button:last-child {
-  background: #2ecc71;
-  color: white;
+.ivx-btn:active {
+  transform: scale(0.94);
+}
+
+.ivx-btn:disabled {
+  cursor: default;
+  transform: none;
+}
+
+.ivx-spin {
+  animation: ivx-rotate 0.8s linear infinite;
+}
+
+@keyframes ivx-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Frosted-glass look that adapts to whatever background it's sitting
+   on, so the buttons read as native page UI rather than a fixed
+   dark/neon box regardless of site. */
+.ivx-btn-container[data-ivx-theme='light'] .ivx-btn {
+  background: rgba(255, 255, 255, 0.82);
+  color: #2b2b2b;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.ivx-btn-container[data-ivx-theme='light'] .ivx-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.ivx-btn-container[data-ivx-theme='dark'] .ivx-btn {
+  background: rgba(28, 28, 30, 0.72);
+  color: #f2f2f2;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.ivx-btn-container[data-ivx-theme='dark'] .ivx-btn:hover {
+  background: rgba(28, 28, 30, 0.9);
 }
