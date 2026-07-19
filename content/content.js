@@ -1,170 +1,120 @@
-let currentImage = null;
-let menuVisible = false;
+// Simple inline buttons injected near the blue action button
+(function () {
+  'use strict';
 
-// Create floating menu
-function createMenu() {
-  const menu = document.createElement('div');
-  menu.id = 'image-viewer-menu';
-  menu.innerHTML = `
-    <div class="menu-item" data-action="view">
-      <span class="icon">👁️</span>
-      <span>View Photo</span>
-    </div>
-    <div class="menu-item" data-action="download">
-      <span class="icon">⬇️</span>
-      <span>Download Image</span>
-    </div>
-  `;
-  document.body.appendChild(menu);
-  return menu;
-}
+  let buttonsInjected = false;
 
-// Create three-dots button
-function createThreeDots(image) {
-  const btn = document.createElement('button');
-  btn.className = 'image-three-dots';
-  btn.innerHTML = '⋮';
-  btn.title = 'Image Options';
-  
-  btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    showMenu(image, btn);
-  });
-  
-  return btn;
-}
+  function injectButtons() {
+    if (buttonsInjected) return;
 
-// Show menu near image
-function showMenu(image, triggerBtn) {
-  hideMenu();
-  
-  currentImage = image;
-  const menu = document.getElementById('image-viewer-menu');
-  if (!menu) return;
-  
-  const rect = triggerBtn.getBoundingClientRect();
-  menu.style.left = rect.left + 'px';
-  menu.style.top = (rect.bottom + 5) + 'px';
-  menu.classList.add('visible');
-  menuVisible = true;
-  
-  // Add click handlers
-  menu.querySelectorAll('.menu-item').forEach(item => {
-    item.onclick = (e) => {
-      e.stopPropagation();
-      const action = item.dataset.action;
-      if (action === 'view') {
-        viewImage(image.src);
-      } else if (action === 'download') {
-        downloadImage(image.src, image.alt || 'image');
+    // Find the container with the blue "செல் >" button
+    // Adjust selector based on actual DOM structure
+    const actionContainer = document.querySelector('div[style*="flex"], .action-bar, .button-row, footer') 
+      || document.body;
+
+    // Create wrapper for our buttons
+    const btnWrapper = document.createElement('div');
+    btnWrapper.id = 'ivp-buttons';
+    btnWrapper.style.cssText = `
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    `;
+
+    // View Image Button
+    const viewBtn = document.createElement('button');
+    viewBtn.textContent = '👁️ View Image';
+    viewBtn.style.cssText = `
+      padding: 8px 16px;
+      background: #4a90d9;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+    `;
+
+    // Download Image Button
+    const downloadBtn = document.createElement('button');
+    downloadBtn.textContent = '⬇️ Download Image';
+    downloadBtn.style.cssText = `
+      padding: 8px 16px;
+      background: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      font-weight: 500;
+    `;
+
+    // Get the largest image on the page
+    function getMainImage() {
+      const imgs = Array.from(document.querySelectorAll('img'));
+      return imgs.reduce((prev, curr) => 
+        (curr.naturalWidth * curr.naturalHeight) > (prev.naturalWidth * prev.naturalHeight) 
+          ? curr : prev
+      , imgs[0] || null);
+    }
+
+    // View Image handler - opens in new tab
+    viewBtn.addEventListener('click', () => {
+      const img = getMainImage();
+      if (img) {
+        window.open(img.src, '_blank');
+      } else {
+        alert('No image found on this page.');
       }
-      hideMenu();
-    };
-  });
-}
-
-// Hide menu
-function hideMenu() {
-  const menu = document.getElementById('image-viewer-menu');
-  if (menu) {
-    menu.classList.remove('visible');
-    menuVisible = false;
-  }
-}
-
-// View image in overlay
-function viewImage(src) {
-  const overlay = document.createElement('div');
-  overlay.className = 'image-viewer-overlay';
-  overlay.innerHTML = `
-    <div class="viewer-close">×</div>
-    <img src="${src}" class="viewer-image">
-  `;
-  
-  overlay.querySelector('.viewer-close').onclick = () => {
-    overlay.remove();
-  };
-  
-  overlay.onclick = (e) => {
-    if (e.target === overlay) {
-      overlay.remove();
-    }
-  };
-  
-  document.body.appendChild(overlay);
-}
-
-// Download image
-async function downloadImage(url, filename) {
-  try {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const objectURL = URL.createObjectURL(blob);
-    
-    chrome.runtime.sendMessage({
-      action: 'download',
-      url: objectURL,
-      filename: filename + getFileExtension(url),
-      saveAs: true
     });
-    
-    setTimeout(() => URL.revokeObjectURL(objectURL), 1000);
-  } catch (error) {
-    console.error('Download error:', error);
+
+    // Download Image handler - triggers Save As
+    downloadBtn.addEventListener('click', async () => {
+      const img = getMainImage();
+      if (!img) {
+        alert('No image found on this page.');
+        return;
+      }
+
+      try {
+        const response = await fetch(img.src);
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        
+        const ext = img.src.split('.').pop().split('?')[0] || 'jpg';
+        const filename = `image_${Date.now()}.${ext}`;
+
+        chrome.runtime.sendMessage({
+          action: 'download',
+          url: url,
+          filename: filename,
+          saveAs: true
+        }, () => {
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        });
+      } catch (err) {
+        console.error('Download failed:', err);
+        // Fallback: direct link download
+        const a = document.createElement('a');
+        a.href = img.src;
+        a.download = `image_${Date.now()}.jpg`;
+        a.target = '_blank';
+        a.click();
+      }
+    });
+
+    btnWrapper.appendChild(viewBtn);
+    btnWrapper.appendChild(downloadBtn);
+    actionContainer.appendChild(btnWrapper);
+    buttonsInjected = true;
   }
-}
 
-function getFileExtension(url) {
-  const match = url.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
-  return match ? match[0] : '.jpg';
-}
-
-// Process all images on page
-function processImages() {
-  const images = document.querySelectorAll('img');
-  images.forEach(img => {
-    if (!img.dataset.processed && img.offsetWidth > 50 && img.offsetHeight > 50) {
-      img.dataset.processed = 'true';
-      img.style.position = 'relative';
-      
-      const dots = createThreeDots(img);
-      img.parentNode.insertBefore(dots, img.nextSibling);
-    }
-  });
-}
-
-// Initialize
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    createMenu();
-    processImages();
-  });
-} else {
-  createMenu();
-  processImages();
-}
-
-// Watch for new images
-const observer = new MutationObserver((mutations) => {
-  let shouldProcess = false;
-  mutations.forEach((mutation) => {
-    if (mutation.addedNodes.length > 0) {
-      shouldProcess = true;
-    }
-  });
-  if (shouldProcess) {
-    setTimeout(processImages, 500);
+  // Wait for page to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', injectButtons);
+  } else {
+    setTimeout(injectButtons, 1000);
   }
-});
 
-observer.observe(document.body, {
-  childList: true,
-  subtree: true
-});
-
-// Close menu on outside click
-document.addEventListener('click', (e) => {
-  if (menuVisible && !e.target.closest('#image-viewer-menu') && !e.target.closest('.image-three-dots')) {
-    hideMenu();
-  }
-});
+})();
