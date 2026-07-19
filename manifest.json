@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Image Viewer Pro",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "View and download images with advanced options",
   "permissions": [
     "downloads",
@@ -11,12 +11,7 @@
     "<all_urls>"
   ],
   "action": {
-    "default_popup": "popup/popup.html",
-    "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
-    }
+    "default_popup": "popup/popup.html"
   },
   "background": {
     "service_worker": "background/background.js"
@@ -28,10 +23,5 @@
       "css": ["content/content.css"],
       "run_at": "document_idle"
     }
-  ],
-  "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
-  }
+  ]
 }
