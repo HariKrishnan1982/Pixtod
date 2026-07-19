@@ -1,3 +1,5 @@
+/* ---------- Per-thumbnail overlay (view / save / copy) ---------- */
+
 .ivx-btn-container {
   position: absolute;
   top: 6px;
@@ -5,15 +7,13 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  z-index: 2147483647; /* stay above the host page's own UI */
+  z-index: 2147483647;
   pointer-events: auto;
   opacity: 0;
   transform: translateY(-2px);
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-/* Reveal on hover of the tile itself, so the UI stays out of the way
-   until the user is actually looking at that image. */
 :hover > .ivx-btn-container,
 .ivx-btn-container:hover,
 .ivx-btn-container:focus-within {
@@ -21,12 +21,17 @@
   transform: translateY(0);
 }
 
+html.ivx-hover-off .ivx-btn-container,
+html.ivx-batch-active .ivx-btn-container {
+  display: none !important;
+}
+
 .ivx-btn {
   all: unset;
   box-sizing: border-box;
   cursor: pointer;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -37,53 +42,151 @@
   transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 
-.ivx-btn svg {
-  display: block;
-}
+.ivx-btn svg { display: block; }
 
 .ivx-btn:hover {
   transform: translateY(-1px) scale(1.06);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.16);
 }
 
-.ivx-btn:active {
-  transform: scale(0.94);
-}
+.ivx-btn:active { transform: scale(0.94); }
+.ivx-btn:disabled { cursor: default; transform: none; }
 
-.ivx-btn:disabled {
-  cursor: default;
-  transform: none;
-}
+.ivx-spin { animation: ivx-rotate 0.8s linear infinite; }
+@keyframes ivx-rotate { to { transform: rotate(360deg); } }
 
-.ivx-spin {
-  animation: ivx-rotate 0.8s linear infinite;
-}
-
-@keyframes ivx-rotate {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Frosted-glass look that adapts to whatever background it's sitting
-   on, so the buttons read as native page UI rather than a fixed
-   dark/neon box regardless of site. */
 .ivx-btn-container[data-ivx-theme='light'] .ivx-btn {
   background: rgba(255, 255, 255, 0.82);
   color: #2b2b2b;
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
-
-.ivx-btn-container[data-ivx-theme='light'] .ivx-btn:hover {
-  background: rgba(255, 255, 255, 0.95);
-}
+.ivx-btn-container[data-ivx-theme='light'] .ivx-btn:hover { background: rgba(255, 255, 255, 0.95); }
 
 .ivx-btn-container[data-ivx-theme='dark'] .ivx-btn {
   background: rgba(28, 28, 30, 0.72);
   color: #f2f2f2;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
+.ivx-btn-container[data-ivx-theme='dark'] .ivx-btn:hover { background: rgba(28, 28, 30, 0.9); }
 
-.ivx-btn-container[data-ivx-theme='dark'] .ivx-btn:hover {
-  background: rgba(28, 28, 30, 0.9);
+/* ---------- Dimensions / filesize tooltip ---------- */
+
+.ivx-tooltip {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2147483647;
+  background: rgba(20, 20, 20, 0.88);
+  color: #f2f2f2;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 7px;
+  border-radius: 5px;
+  white-space: nowrap;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
+
+html.ivx-batch-active .ivx-tooltip { display: none; }
+
+/* ---------- Batch selection marker (shown only in batch mode) ---------- */
+
+.ivx-select-marker {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  background: rgba(255, 255, 255, 0.85);
+  color: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+html.ivx-batch-active .ivx-select-marker { display: flex; }
+
+.ivx-select-marker.ivx-selected {
+  background: #00c853;
+  color: #fff;
+  border-color: #00c853;
+}
+
+/* ---------- Floating batch-mode toggle ---------- */
+
+.ivx-batch-toggle {
+  all: unset;
+  box-sizing: border-box;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(24, 24, 26, 0.92);
+  color: #f2f2f2;
+  font: 600 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.18);
+  z-index: 2147483647;
+  transition: background 0.15s ease, transform 0.12s ease;
+}
+.ivx-batch-toggle:hover { background: rgba(24, 24, 26, 1); transform: translateY(-1px); }
+.ivx-batch-toggle:active { transform: scale(0.97); }
+html.ivx-batch-active .ivx-batch-toggle { display: none; }
+
+/* ---------- Batch action bar ---------- */
+
+.ivx-batch-bar {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 999px;
+  background: rgba(24, 24, 26, 0.94);
+  color: #f2f2f2;
+  font: 600 12px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.18);
+  z-index: 2147483647;
+}
+
+html.ivx-batch-active .ivx-batch-bar { display: flex; }
+
+.ivx-batch-bar .ivx-batch-count { opacity: 0.75; padding-right: 4px; white-space: nowrap; }
+
+.ivx-batch-bar button {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.12s ease;
+}
+.ivx-batch-bar button:hover { background: rgba(255, 255, 255, 0.18); }
+.ivx-batch-bar button:disabled { opacity: 0.6; cursor: default; }
+
+.ivx-batch-bar .ivx-batch-save { background: #00c853; color: #08210f; }
+.ivx-batch-bar .ivx-batch-save:hover { background: #05d95c; }
+
+.ivx-batch-bar .ivx-batch-exit {
+  padding: 7px;
+  background: transparent;
+}
+.ivx-batch-bar .ivx-batch-exit:hover { background: rgba(255, 255, 255, 0.12); }

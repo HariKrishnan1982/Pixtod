@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Image Viewer</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <span class="dot"></span>
+    <h1>Image Viewer</h1>
+  </header>
+
+  <section>
+    <h2>On hover</h2>
+    <label class="option">
+      <input type="radio" name="hoverAction" value="showButtons" />
+      <span>
+        <strong>Show buttons</strong>
+        <small>View / Save / Copy appear on hover (default)</small>
+      </span>
+    </label>
+    <label class="option">
+      <input type="radio" name="hoverAction" value="autoView" />
+      <span>
+        <strong>Auto-open image</strong>
+        <small>Opens the full image in a new tab on hover</small>
+      </span>
+    </label>
+    <label class="option">
+      <input type="radio" name="hoverAction" value="autoSave" />
+      <span>
+        <strong>Auto-download image</strong>
+        <small>Downloads straight to your folder on hover</small>
+      </span>
+    </label>
+    <label class="option">
+      <input type="radio" name="hoverAction" value="off" />
+      <span>
+        <strong>Do nothing</strong>
+        <small>No buttons — use the keyboard shortcuts only</small>
+      </span>
+    </label>
+  </section>
+
+  <section>
+    <label class="toggle-row">
+      <span>
+        <strong>Dimensions &amp; size tooltip</strong>
+        <small>Show resolution and file size on hover</small>
+      </span>
+      <input type="checkbox" id="showDimensions" />
+    </label>
+  </section>
+
+  <footer>
+    <p><strong>V</strong> view · <strong>S</strong> save · <strong>C</strong> copy — while hovering an image</p>
+    <p>Batch select: toggle button, bottom-right of any page</p>
+  </footer>
+</body>
+</html>
