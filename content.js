@@ -4,8 +4,8 @@
  * Adds View / Save / Copy buttons to images on any page, a batch
  * selection mode, hover-triggered keyboard shortcuts, an optional
  * dimensions/filesize tooltip, and reports counts to the toolbar
- * badge. Behavior is configurable from the popup and stored in
- * chrome.storage.sync.
+ * badge. The dimensions/size tooltip is configurable from the popup
+ * and stored in chrome.storage.sync.
  */
 
 (() => {
@@ -19,7 +19,6 @@
   const MIN_DIMENSION = 60; // ignore icons/sprites/avatars
 
   const DEFAULT_SETTINGS = {
-    hoverAction: 'showButtons', // 'showButtons' | 'autoView' | 'autoSave' | 'off'
     showDimensions: true,
   };
   let settings = { ...DEFAULT_SETTINGS };
@@ -61,28 +60,18 @@
 
   storageGet(DEFAULT_SETTINGS).then((stored) => {
     settings = { ...DEFAULT_SETTINGS, ...stored };
-    applyHoverOffState();
   });
 
   try {
     api.storage.onChanged.addListener((changes, area) => {
       if (area !== 'sync') return;
-      let changed = false;
       for (const key of Object.keys(changes)) {
-        if (key in DEFAULT_SETTINGS) {
-          settings[key] = changes[key].newValue;
-          changed = true;
-        }
+        if (key in DEFAULT_SETTINGS) settings[key] = changes[key].newValue;
       }
-      if (changed) applyHoverOffState();
     });
   } catch {
     /* storage.onChanged unavailable in some contexts — settings just
        won't live-update, initial load above still applies. */
-  }
-
-  function applyHoverOffState() {
-    document.documentElement.classList.toggle('ivx-hover-off', settings.hoverAction === 'off');
   }
 
   // ---------------------------------------------------------------
@@ -91,17 +80,17 @@
 
   const ICONS = {
     view:
-      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>',
     save:
-      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19.5h16"/></svg>',
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M4 19.5h16"/></svg>',
     copy:
-      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>',
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>',
     loading:
-      '<svg class="ivx-spin" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>',
+      '<svg class="ivx-spin" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 9 9"/></svg>',
     check:
-      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6"/></svg>',
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6"/></svg>',
     error:
-      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+      '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
     checkSmall:
       '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9.5 18 20 6"/></svg>',
     select:
@@ -114,21 +103,49 @@
   // Positioning / theme helpers
   // ---------------------------------------------------------------
 
+  // Walk up from the <img>, looking for the ancestor that best represents
+  // "this one thumbnail/tile" rather than the whole grid/column. Sites
+  // like Pinterest and Instagram already wrap each tile in a
+  // position:relative element (so they can absolutely-position their
+  // own hover UI inside it) — reusing that element gives the most
+  // reliable anchor. We fall back to the nearest similarly-sized
+  // ancestor if no positioned wrapper is found.
   function getAnchorContainer(img) {
-    let el = img.parentElement;
-    if (!el) return null;
-
     const imgRect = img.getBoundingClientRect();
-    const parentRect = el.getBoundingClientRect();
-    const grandparent = el.parentElement;
-    if (
-      grandparent &&
-      Math.abs(parentRect.width - imgRect.width) < 4 &&
-      Math.abs(parentRect.height - imgRect.height) < 4
-    ) {
-      el = grandparent;
+    if (imgRect.width === 0 || imgRect.height === 0) return img.parentElement || null;
+
+    const MAX_LEVELS = 6;
+    let node = img.parentElement;
+    let fallback = node;
+    let levels = 0;
+
+    while (node && node !== document.body && levels < MAX_LEVELS) {
+      const rect = node.getBoundingClientRect();
+      const widthRatio = rect.width / imgRect.width;
+      const heightRatio = rect.height / imgRect.height;
+      // Height is allowed to grow more than width — captions/titles often
+      // sit below the image inside the same tile.
+      const sizeIsReasonable = widthRatio >= 0.85 && widthRatio <= 2.2 && heightRatio >= 0.85 && heightRatio <= 3.5;
+
+      if (sizeIsReasonable) {
+        fallback = node;
+        if (window.getComputedStyle(node).position !== 'static') {
+          return ensurePositioned(node);
+        }
+      } else if (widthRatio > 2.2) {
+        // Grown past a single tile — we've hit the grid/column wrapper.
+        break;
+      }
+
+      node = node.parentElement;
+      levels++;
     }
 
+    return ensurePositioned(fallback || img.parentElement);
+  }
+
+  function ensurePositioned(el) {
+    if (!el) return null;
     if (window.getComputedStyle(el).position === 'static') {
       el.style.position = 'relative';
     }
@@ -162,13 +179,19 @@
   // ---------------------------------------------------------------
 
   function resolveImageSrc(img) {
-    return (
-      img.getAttribute('data-src') ||
-      img.getAttribute('data-iurl') ||
-      img.currentSrc ||
-      img.src ||
-      ''
-    );
+    const explicit = img.getAttribute('data-src') || img.getAttribute('data-iurl');
+    if (explicit) return explicit;
+
+    const srcset = img.getAttribute('srcset');
+    if (srcset) {
+      const candidates = srcset
+        .split(',')
+        .map((entry) => entry.trim().split(/\s+/)[0])
+        .filter(Boolean);
+      if (candidates.length) return candidates[candidates.length - 1];
+    }
+
+    return img.currentSrc || img.src || '';
   }
 
   function suggestFilename(src, mimeType) {
@@ -512,14 +535,6 @@
     container.addEventListener('mouseenter', () => {
       hoveredImg = img;
       showTooltip(entry);
-      if (batchMode) return;
-      if (settings.hoverAction === 'autoView' && !entry.autoTriggered) {
-        entry.autoTriggered = true;
-        actionView(entry);
-      } else if (settings.hoverAction === 'autoSave' && !entry.autoTriggered) {
-        entry.autoTriggered = true;
-        actionSave(entry);
-      }
     });
     container.addEventListener('mouseleave', () => {
       if (hoveredImg === img) hoveredImg = null;

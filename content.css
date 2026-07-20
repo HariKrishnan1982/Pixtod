@@ -21,7 +21,6 @@
   transform: translateY(0);
 }
 
-html.ivx-hover-off .ivx-btn-container,
 html.ivx-batch-active .ivx-btn-container {
   display: none !important;
 }

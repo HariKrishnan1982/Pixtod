@@ -7,55 +7,50 @@
 </head>
 <body>
   <header>
-    <span class="dot"></span>
-    <h1>Image Viewer</h1>
+    <div class="brand">
+      <img src="icons/icon48.png" alt="" class="logo" />
+      <span>Image Viewer</span>
+    </div>
+    <span class="version">v1.1.0</span>
   </header>
 
-  <section>
-    <h2>On hover</h2>
-    <label class="option">
-      <input type="radio" name="hoverAction" value="showButtons" />
-      <span>
-        <strong>Show buttons</strong>
-        <small>View / Save / Copy appear on hover (default)</small>
-      </span>
-    </label>
-    <label class="option">
-      <input type="radio" name="hoverAction" value="autoView" />
-      <span>
-        <strong>Auto-open image</strong>
-        <small>Opens the full image in a new tab on hover</small>
-      </span>
-    </label>
-    <label class="option">
-      <input type="radio" name="hoverAction" value="autoSave" />
-      <span>
-        <strong>Auto-download image</strong>
-        <small>Downloads straight to your folder on hover</small>
-      </span>
-    </label>
-    <label class="option">
-      <input type="radio" name="hoverAction" value="off" />
-      <span>
-        <strong>Do nothing</strong>
-        <small>No buttons — use the keyboard shortcuts only</small>
-      </span>
-    </label>
-  </section>
+  <main>
+    <div class="row">
+      <div class="row-text">
+        <strong>Dark theme</strong>
+        <small>Switch the popup's own appearance</small>
+      </div>
+      <button type="button" class="switch" id="darkTheme" role="switch" aria-checked="false">
+        <span class="switch-thumb"></span>
+      </button>
+    </div>
 
-  <section>
-    <label class="toggle-row">
-      <span>
-        <strong>Dimensions &amp; size tooltip</strong>
+    <div class="row">
+      <div class="row-text">
+        <strong>Dimensions &amp; size</strong>
         <small>Show resolution and file size on hover</small>
-      </span>
-      <input type="checkbox" id="showDimensions" />
-    </label>
-  </section>
+      </div>
+      <button type="button" class="switch" id="showDimensions" role="switch" aria-checked="false">
+        <span class="switch-thumb"></span>
+      </button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="shortcuts-line">
+      <span><kbd>V</kbd> View</span>
+      <span><kbd>S</kbd> Save</span>
+      <span><kbd>C</kbd> Copy</span>
+    </div>
+    <p class="hint">Hover an image, then press a key. Batch-select from the toggle in a page's bottom-right corner.</p>
+  </main>
 
   <footer>
-    <p><strong>V</strong> view · <strong>S</strong> save · <strong>C</strong> copy — while hovering an image</p>
-    <p>Batch select: toggle button, bottom-right of any page</p>
+    <a href="https://github.com/HariKrishnan1982/View_Photo" target="_blank" rel="noopener noreferrer">
+      Found a bug or have a request? <span class="link-em">Open an issue</span>
+    </a>
   </footer>
+
+  <script src="popup.js"></script>
 </body>
 </html>

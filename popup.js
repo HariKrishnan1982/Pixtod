@@ -1,8 +1,8 @@
 const api = typeof browser !== 'undefined' ? browser : chrome;
 
 const DEFAULT_SETTINGS = {
-  hoverAction: 'showButtons',
   showDimensions: true,
+  popupTheme: 'light',
 };
 
 function storageGet(defaults) {
@@ -33,20 +33,28 @@ function storageSet(values) {
   }
 }
 
+function wireSwitch(id, initialValue, onChange) {
+  const btn = document.getElementById(id);
+  const setChecked = (checked) => btn.setAttribute('aria-checked', String(checked));
+  setChecked(!!initialValue);
+  btn.addEventListener('click', () => {
+    const next = btn.getAttribute('aria-checked') !== 'true';
+    setChecked(next);
+    onChange(next);
+  });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   const settings = await storageGet(DEFAULT_SETTINGS);
 
-  const radios = document.querySelectorAll('input[name="hoverAction"]');
-  radios.forEach((radio) => {
-    radio.checked = radio.value === settings.hoverAction;
-    radio.addEventListener('change', () => {
-      if (radio.checked) storageSet({ hoverAction: radio.value });
-    });
+  document.documentElement.setAttribute('data-theme', settings.popupTheme === 'dark' ? 'dark' : 'light');
+
+  wireSwitch('darkTheme', settings.popupTheme === 'dark', (checked) => {
+    document.documentElement.setAttribute('data-theme', checked ? 'dark' : 'light');
+    storageSet({ popupTheme: checked ? 'dark' : 'light' });
   });
 
-  const dimensionsToggle = document.getElementById('showDimensions');
-  dimensionsToggle.checked = settings.showDimensions;
-  dimensionsToggle.addEventListener('change', () => {
-    storageSet({ showDimensions: dimensionsToggle.checked });
+  wireSwitch('showDimensions', settings.showDimensions, (checked) => {
+    storageSet({ showDimensions: checked });
   });
 });
