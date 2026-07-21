@@ -1,18 +1,17 @@
 /**
- * content.js — Image Viewer
+ * content.js — Fetch_Img_
  *
  * Adds View / Save / Copy buttons to images on any page, a batch
- * selection mode, hover-triggered keyboard shortcuts, an optional
- * dimensions/filesize tooltip, and reports counts to the toolbar
- * badge. The dimensions/size tooltip is configurable from the popup
- * and stored in chrome.storage.sync.
+ * selection mode (with zip export + duplicate detection), hover-
+ * triggered keyboard shortcuts, an optional dimensions/filesize
+ * tooltip, and reports counts/stats to the toolbar badge & popup.
+ * Settings (dimensions tooltip, overlay corner) are stored in
+ * chrome.storage.sync.
  */
 
 (() => {
   'use strict';
 
-  // --- Cross-browser API alias (Chrome/Edge use `chrome`, Firefox
-  // exposes the same surface as a promise-based `browser`). ---------
   const api = typeof browser !== 'undefined' ? browser : chrome;
 
   const PROCESSED_ATTR = 'data-ivx-processed';
@@ -20,12 +19,12 @@
 
   const DEFAULT_SETTINGS = {
     showDimensions: true,
+    overlayPosition: 'top-right', // 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left'
   };
   let settings = { ...DEFAULT_SETTINGS };
 
-  // img -> { container, overlay, viewBtn, saveBtn, copyBtn, marker, tooltip, tooltipTimer, sizeCache }
+  // img -> { container, overlay, viewBtn, saveBtn, copyBtn, marker, tooltip, tooltipTimer, sizeCache, hasHighRes }
   const registry = new Map();
-  const trackedImages = new Set();
   let lastSentBadgeCount = -1;
 
   let hoveredImg = null;
@@ -60,6 +59,7 @@
 
   storageGet(DEFAULT_SETTINGS).then((stored) => {
     settings = { ...DEFAULT_SETTINGS, ...stored };
+    applyOverlayPosition();
   });
 
   try {
@@ -68,10 +68,53 @@
       for (const key of Object.keys(changes)) {
         if (key in DEFAULT_SETTINGS) settings[key] = changes[key].newValue;
       }
+      applyOverlayPosition();
     });
   } catch {
     /* storage.onChanged unavailable in some contexts — settings just
        won't live-update, initial load above still applies. */
+  }
+
+  function applyOverlayPosition() {
+    document.documentElement.setAttribute('data-ivx-pos', settings.overlayPosition || 'top-right');
+  }
+
+  // ---------------------------------------------------------------
+  // Background messaging helpers
+  // ---------------------------------------------------------------
+
+  function callBackground(payload) {
+    return new Promise((resolve) => {
+      try {
+        const maybePromise = api.runtime.sendMessage(payload, (response) => resolve(response));
+        if (maybePromise && typeof maybePromise.then === 'function') {
+          maybePromise.then(resolve).catch(() => resolve(undefined));
+        }
+      } catch {
+        resolve(undefined);
+      }
+    });
+  }
+
+  function sendDownload(payload) {
+    return callBackground({ action: 'download', ...payload });
+  }
+
+  async function checkDuplicates(urls) {
+    const res = await callBackground({ action: 'checkDuplicates', urls });
+    return (res && res.duplicates) || [];
+  }
+
+  function markSaved(urls) {
+    return callBackground({ action: 'markSaved', urls });
+  }
+
+  function reportBadge(count, fullRes, thumbnailOnly) {
+    try {
+      api.runtime.sendMessage({ action: 'updateBadge', count, fullRes, thumbnailOnly });
+    } catch {
+      /* extension context may be reloading — ignore */
+    }
   }
 
   // ---------------------------------------------------------------
@@ -97,6 +140,8 @@
       '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="m8 12 3 3 6-6"/></svg>',
     close:
       '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+    zip:
+      '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v3M12 8v2M12 12v2M12 16v2"/></svg>',
   };
 
   // ---------------------------------------------------------------
@@ -123,8 +168,6 @@
       const rect = node.getBoundingClientRect();
       const widthRatio = rect.width / imgRect.width;
       const heightRatio = rect.height / imgRect.height;
-      // Height is allowed to grow more than width — captions/titles often
-      // sit below the image inside the same tile.
       const sizeIsReasonable = widthRatio >= 0.85 && widthRatio <= 2.2 && heightRatio >= 0.85 && heightRatio <= 3.5;
 
       if (sizeIsReasonable) {
@@ -133,7 +176,6 @@
           return ensurePositioned(node);
         }
       } else if (widthRatio > 2.2) {
-        // Grown past a single tile — we've hit the grid/column wrapper.
         break;
       }
 
@@ -194,6 +236,11 @@
     return img.currentSrc || img.src || '';
   }
 
+  function hasHighResHint(img) {
+    return Boolean(img.getAttribute('data-src') || img.getAttribute('data-iurl') || img.getAttribute('srcset'));
+  }
+
+  const usedFilenames = new Set();
   function suggestFilename(src, mimeType) {
     let base = null;
     try {
@@ -204,9 +251,19 @@
       /* malformed or data: URL — fall through to generated name */
     }
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-    if (base) return base;
     const ext = mimeType && mimeType.includes('/') ? mimeType.split('/')[1].split('+')[0] : 'jpg';
-    return `image_${suffix}.${ext}`;
+    let name = base || `image_${suffix}.${ext}`;
+    // Guarantee uniqueness (matters most when bundling many into one zip).
+    let n = 1;
+    const dot = name.lastIndexOf('.');
+    const stem = dot > -1 ? name.slice(0, dot) : name;
+    const extPart = dot > -1 ? name.slice(dot) : '';
+    while (usedFilenames.has(name)) {
+      name = `${stem}-${n}${extPart}`;
+      n++;
+    }
+    usedFilenames.add(name);
+    return name;
   }
 
   async function ensurePngBlob(blob) {
@@ -221,7 +278,7 @@
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png')
       );
     } catch {
-      return blob; // best-effort — clipboard write may reject exotic formats
+      return blob;
     }
   }
 
@@ -230,6 +287,98 @@
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  // ---------------------------------------------------------------
+  // Minimal ZIP writer (STORE method — no compression, no deps)
+  // ---------------------------------------------------------------
+
+  const CRC_TABLE = (() => {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? (0xedb88320 ^ (c >>> 1)) : c >>> 1;
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(data) {
+    let crc = 0xffffffff;
+    for (let i = 0; i < data.length; i++) {
+      crc = CRC_TABLE[(crc ^ data[i]) & 0xff] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  function buildZip(entries) {
+    const encoder = new TextEncoder();
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+
+    for (const entry of entries) {
+      const nameBytes = encoder.encode(entry.name);
+      const data = entry.data;
+      const crc = crc32(data);
+      const size = data.length;
+
+      const local = new Uint8Array(30 + nameBytes.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0, true);
+      lv.setUint16(8, 0, true);
+      lv.setUint16(10, 0, true);
+      lv.setUint16(12, 0, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true);
+      lv.setUint32(22, size, true);
+      lv.setUint16(26, nameBytes.length, true);
+      lv.setUint16(28, 0, true);
+      local.set(nameBytes, 30);
+      localParts.push(local, data);
+
+      const central = new Uint8Array(46 + nameBytes.length);
+      const cv = new DataView(central.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, 0, true);
+      cv.setUint16(14, 0, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, nameBytes.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      central.set(nameBytes, 46);
+      centralParts.push(central);
+
+      offset += local.length + data.length;
+    }
+
+    const centralSize = centralParts.reduce((s, p) => s + p.length, 0);
+    const centralOffset = offset;
+
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, entries.length, true);
+    ev.setUint16(10, entries.length, true);
+    ev.setUint32(12, centralSize, true);
+    ev.setUint32(16, centralOffset, true);
+    ev.setUint16(20, 0, true);
+
+    return new Blob([...localParts, ...centralParts, end], { type: 'application/zip' });
   }
 
   // ---------------------------------------------------------------
@@ -283,6 +432,7 @@
         saveAs: !silent,
       });
       setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+      markSaved([src]);
       if (!silent) flashButton(entry.saveBtn, 'check');
     } catch {
       if (!silent) {
@@ -312,17 +462,6 @@
     } finally {
       setButtonBusy(entry.copyBtn, false);
     }
-  }
-
-  function sendDownload(payload) {
-    return new Promise((resolve) => {
-      try {
-        const maybePromise = api.runtime.sendMessage({ action: 'download', ...payload }, () => resolve());
-        if (maybePromise && typeof maybePromise.then === 'function') maybePromise.then(resolve).catch(resolve);
-      } catch {
-        resolve();
-      }
-    });
   }
 
   // ---------------------------------------------------------------
@@ -393,25 +532,13 @@
     bar.className = 'ivx-batch-bar';
     bar.innerHTML = `
       <span class="ivx-batch-count">0 selected</span>
-      <button type="button" class="ivx-batch-save" data-icon="save">${ICONS.save}<span>Save all</span></button>
+      <button type="button" class="ivx-batch-save" data-icon="zip">${ICONS.zip}<span>Save as ZIP</span></button>
       <button type="button" class="ivx-batch-clear"><span>Clear</span></button>
       <button type="button" class="ivx-batch-exit" aria-label="Exit batch mode">${ICONS.close}</button>
     `;
     document.documentElement.appendChild(bar);
 
-    bar.querySelector('.ivx-batch-save').addEventListener('click', async (e) => {
-      const btn = e.currentTarget;
-      if (selectedImages.size === 0) return;
-      setButtonBusy(btn, true);
-      const targets = Array.from(selectedImages);
-      for (const img of targets) {
-        const entry = registry.get(img);
-        if (entry) await actionSave(entry, { silent: true });
-      }
-      setButtonBusy(btn, false);
-      flashButton(btn, 'check');
-    });
-
+    bar.querySelector('.ivx-batch-save').addEventListener('click', (e) => saveSelectionAsZip(e.currentTarget));
     bar.querySelector('.ivx-batch-clear').addEventListener('click', () => clearSelection());
     bar.querySelector('.ivx-batch-exit').addEventListener('click', () => setBatchMode(false));
 
@@ -419,6 +546,67 @@
   }
 
   const batchUI = buildBatchUI();
+
+  async function saveSelectionAsZip(btn) {
+    if (selectedImages.size === 0) return;
+    setButtonBusy(btn, true);
+    const originalCount = batchUI.countEl.textContent;
+
+    try {
+      const targets = Array.from(selectedImages);
+      const srcs = targets.map((img) => resolveImageSrc(img)).filter(Boolean);
+
+      const duplicates = new Set(await checkDuplicates(srcs));
+      const fresh = targets.filter((img) => !duplicates.has(resolveImageSrc(img)));
+      const skipped = targets.length - fresh.length;
+
+      if (fresh.length === 0) {
+        batchUI.countEl.textContent = 'Already saved';
+        flashButton(btn, 'error');
+        setTimeout(() => { batchUI.countEl.textContent = originalCount; }, 1600);
+        return;
+      }
+
+      const entries = [];
+      const savedSrcs = [];
+      for (const img of fresh) {
+        const src = resolveImageSrc(img);
+        if (!src) continue;
+        try {
+          const resp = await fetch(src);
+          const blob = await resp.blob();
+          const buf = new Uint8Array(await blob.arrayBuffer());
+          entries.push({ name: suggestFilename(src, blob.type), data: buf });
+          savedSrcs.push(src);
+        } catch {
+          /* skip images that fail to fetch — continue with the rest */
+        }
+      }
+
+      if (entries.length === 0) {
+        flashButton(btn, 'error');
+        return;
+      }
+
+      const zipBlob = buildZip(entries);
+      const zipUrl = URL.createObjectURL(zipBlob);
+      await sendDownload({
+        url: zipUrl,
+        filename: `images-${Date.now()}.zip`,
+        saveAs: true,
+      });
+      setTimeout(() => URL.revokeObjectURL(zipUrl), 15000);
+      markSaved(savedSrcs);
+
+      batchUI.countEl.textContent = skipped > 0
+        ? `Saved ${entries.length} \u00B7 skipped ${skipped} duplicate${skipped > 1 ? 's' : ''}`
+        : `Saved ${entries.length}`;
+      flashButton(btn, 'check');
+      setTimeout(() => { if (batchMode) updateBatchCount(); }, 2200);
+    } finally {
+      setButtonBusy(btn, false);
+    }
+  }
 
   function setBatchMode(on) {
     batchMode = on;
@@ -498,11 +686,25 @@
     return { overlay, viewBtn, saveBtn, copyBtn };
   }
 
-  function createSelectMarker(entry) {
+  function createSelectMarker() {
     const marker = document.createElement('div');
     marker.className = 'ivx-select-marker';
     marker.innerHTML = ICONS.checkSmall;
     return marker;
+  }
+
+  function reassertOverlay(entry) {
+    const { container, overlay, marker } = entry;
+    // Re-append even when already connected — moving a node to the end
+    // of its parent wins DOM-order paint ties against anything the
+    // host page injects afterward (e.g. Pinterest's own hover overlay),
+    // and re-attaches it if a host re-render detached it entirely.
+    if (overlay.parentNode !== container || container.lastElementChild !== overlay) {
+      container.appendChild(overlay);
+    }
+    if (marker.parentNode !== container) {
+      container.appendChild(marker);
+    }
   }
 
   function processImage(img) {
@@ -522,18 +724,22 @@
     overlay.dataset.ivxTheme = detectSurroundingTheme(container);
     container.appendChild(overlay);
 
-    const entry = { img, container, overlay, viewBtn, saveBtn, copyBtn, tooltip: null, tooltipTimer: null, sizeCache: null };
-    entry.marker = createSelectMarker(entry);
+    const entry = {
+      img, container, overlay, viewBtn, saveBtn, copyBtn,
+      tooltip: null, tooltipTimer: null, sizeCache: null,
+      hasHighRes: hasHighResHint(img),
+    };
+    entry.marker = createSelectMarker();
     container.appendChild(entry.marker);
 
     container.setAttribute('data-ivx-anchor', 'true');
     container._ivxImg = img;
 
     registry.set(img, entry);
-    trackedImages.add(img);
 
     container.addEventListener('mouseenter', () => {
       hoveredImg = img;
+      reassertOverlay(entry);
       showTooltip(entry);
     });
     container.addEventListener('mouseleave', () => {
@@ -574,7 +780,7 @@
   });
 
   // ---------------------------------------------------------------
-  // Toolbar badge
+  // Toolbar badge + stats
   // ---------------------------------------------------------------
 
   let badgeScheduled = false;
@@ -583,14 +789,12 @@
     badgeScheduled = true;
     requestAnimationFrame(() => {
       badgeScheduled = false;
-      const count = trackedImages.size;
+      const count = registry.size;
       if (count === lastSentBadgeCount) return;
       lastSentBadgeCount = count;
-      try {
-        api.runtime.sendMessage({ action: 'updateBadge', count });
-      } catch {
-        /* extension context may be reloading — ignore */
-      }
+      let fullRes = 0;
+      for (const entry of registry.values()) if (entry.hasHighRes) fullRes++;
+      reportBadge(count, fullRes, count - fullRes);
     });
   }
 

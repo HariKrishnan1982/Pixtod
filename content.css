@@ -14,6 +14,21 @@
   transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
+/* Custom overlay corner, set from the popup. Default (top-right) is
+   covered by the base rule above. */
+html[data-ivx-pos='top-left'] .ivx-btn-container { top: 6px; left: 6px; right: auto; bottom: auto; }
+html[data-ivx-pos='bottom-right'] .ivx-btn-container { bottom: 6px; right: 6px; top: auto; left: auto; }
+html[data-ivx-pos='bottom-left'] .ivx-btn-container { bottom: 6px; left: 6px; top: auto; right: auto; }
+
+/* Keep the selection marker / tooltip from overlapping the buttons —
+   they default to the top-left corner, so swap to top-right only in
+   the one case where the buttons themselves moved there. */
+html[data-ivx-pos='top-left'] .ivx-select-marker,
+html[data-ivx-pos='top-left'] .ivx-tooltip {
+  left: auto;
+  right: 6px;
+}
+
 :hover > .ivx-btn-container,
 .ivx-btn-container:hover,
 .ivx-btn-container:focus-within {

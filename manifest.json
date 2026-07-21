@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Image Viewer",
-  "version": "1.1.0",
+  "name": "FETCH_IMAGE_",
+  "version": "1.5.1",
   "description": "View, save, copy, and batch-download images on any page — with configurable hover behavior.",
   "permissions": ["downloads", "storage", "clipboardWrite"],
   "host_permissions": ["<all_urls>"],

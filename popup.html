@@ -2,23 +2,30 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Image Viewer</title>
+  <title>Fetch_Img_</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
   <header>
     <div class="brand">
       <img src="icons/icon48.png" alt="" class="logo" />
-      <span>Image Viewer</span>
+      <div class="brand-text">
+        <h1>Fetch_Img_</h1>
+        <span class="build-tag">v1.5.1 — VIEWFINDER TOOLKIT</span>
+      </div>
     </div>
-    <span class="version">v1.1.0</span>
   </header>
+
+  <div id="statsBar" class="stats-bar" hidden>
+    <span class="stats-label">FOUND</span>
+    <span id="statsText"></span>
+  </div>
 
   <main>
     <div class="row">
       <div class="row-text">
-        <strong>Dark theme</strong>
-        <small>Switch the popup's own appearance</small>
+        <span class="row-label">Safelight</span>
+        <p>Dark appearance for this panel</p>
       </div>
       <button type="button" class="switch" id="darkTheme" role="switch" aria-checked="false">
         <span class="switch-thumb"></span>
@@ -27,27 +34,41 @@
 
     <div class="row">
       <div class="row-text">
-        <strong>Dimensions &amp; size</strong>
-        <small>Show resolution and file size on hover</small>
+        <span class="row-label">Exposure data</span>
+        <p>Show resolution &amp; file size on hover</p>
       </div>
       <button type="button" class="switch" id="showDimensions" role="switch" aria-checked="false">
         <span class="switch-thumb"></span>
       </button>
     </div>
 
+    <div class="row row-column">
+      <div class="row-text">
+        <span class="row-label">Corner mount</span>
+        <p>Where the controls sit on each frame</p>
+      </div>
+      <div class="pos-grid" id="posGrid" role="group" aria-label="Button position">
+        <button type="button" class="pos-btn" data-pos="top-left" aria-label="Top left"></button>
+        <button type="button" class="pos-btn" data-pos="top-right" aria-label="Top right"></button>
+        <button type="button" class="pos-btn" data-pos="bottom-left" aria-label="Bottom left"></button>
+        <button type="button" class="pos-btn" data-pos="bottom-right" aria-label="Bottom right"></button>
+      </div>
+    </div>
+
     <div class="divider"></div>
 
     <div class="shortcuts-line">
-      <span><kbd>V</kbd> View</span>
-      <span><kbd>S</kbd> Save</span>
-      <span><kbd>C</kbd> Copy</span>
+      <span><kbd>V</kbd> view</span>
+      <span><kbd>S</kbd> save</span>
+      <span><kbd>C</kbd> copy</span>
     </div>
-    <p class="hint">Hover an image, then press a key. Batch-select from the toggle in a page's bottom-right corner.</p>
+    <p class="hint">Hold the cursor over a frame, then press a key. Select several from the tab in a page's bottom corner — exports as one ZIP, repeats skipped automatically.</p>
   </main>
 
   <footer>
     <a href="https://github.com/HariKrishnan1982/View_Photo" target="_blank" rel="noopener noreferrer">
-      Found a bug or have a request? <span class="link-em">Open an issue</span>
+      <span>Source &amp; issue tracker</span>
+      <span class="arrow">&#8594;</span>
     </a>
   </footer>
 

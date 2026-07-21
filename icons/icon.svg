@@ -1,12 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
-    </linearGradient>
+    <!-- Same brand palette: paper bg #17140F, ink fg #EDE8DC, mark accent #D9694F -->
+    <filter id="tinyShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
   </defs>
-  <rect width="128" height="128" rx="20" fill="url(#grad)"/>
-  <circle cx="64" cy="50" r="25" fill="white" opacity="0.9"/>
-  <path d="M30 90 L50 70 L70 85 L90 65 L110 90" stroke="white" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="95" cy="45" r="8" fill="white" opacity="0.7"/>
+
+  <!-- Background: the darkroom "paper" surface -->
+  <rect x="4" y="4" width="120" height="120" rx="22" fill="#17140F"/>
+  <rect x="4.5" y="4.5" width="119" height="119" rx="21.5" fill="none" stroke="#EDE8DC" stroke-opacity="0.10" stroke-width="1"/>
+
+  <!-- The photo itself: one large frame, dead center, this time the hero rather than a prop -->
+  <g filter="url(#tinyShadow)">
+    <rect x="20" y="20" width="76" height="76" fill="#EDE8DC"/>
+  </g>
+  <!-- inset scene, ink silhouette, matches the welcome-page contact-sheet drawing style -->
+  <path d="M20 78 L38 54 L48 64 L64 42 L82 66 L96 56 V96 H20 Z" fill="#17140F" fill-opacity="0.85"/>
+  <circle cx="78" cy="38" r="7" fill="#17140F" fill-opacity="0.85"/>
+
+  <!-- Viewfinder reticle over the photo: thin ring + crosshair ticks, the lens/focus mark -->
+  <g stroke="#EDE8DC" stroke-width="2" fill="none">
+    <circle cx="58" cy="58" r="17"/>
+  </g>
+  <g stroke="#EDE8DC" stroke-width="2" stroke-linecap="square">
+    <path d="M58 37 V44"/>
+    <path d="M58 72 V79"/>
+    <path d="M37 58 H44"/>
+    <path d="M72 58 H79"/>
+  </g>
+
+  <!-- Folded corner, dog-ear style, revealing the save mark underneath like a stamp -->
+  <path d="M96 66 V96 H66 Z" fill="#0F0D09"/>
+  <g filter="url(#tinyShadow)">
+    <path d="M67 67 L96 67 L96 96 Z" fill="#D9694F"/>
+  </g>
+  <path d="M84.5 74.5 V88.5 M79 83 L84.5 90 L90 83" fill="none" stroke="#17140F" stroke-width="3.2" stroke-linecap="square" stroke-linejoin="miter"/>
 </svg>
