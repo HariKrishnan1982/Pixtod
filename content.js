@@ -12,6 +12,16 @@
 (() => {
   'use strict';
 
+  // Bail out entirely on a standalone image document (i.e. the tab
+  // opened by "View image" itself, or any direct image:// navigation).
+  // content_scripts match <all_urls>, so this file runs there too —
+  // and forcing `position: relative` onto <body> (below, when picking
+  // an anchor container for the overlay) can knock Firefox's native
+  // image-centering out, making the image jump to the top-left
+  // instead of staying centered. There's also nothing useful to
+  // overlay on a page that's already just the full image.
+  if (document.contentType && document.contentType.startsWith('image/')) return;
+
   const api = typeof browser !== 'undefined' ? browser : chrome;
 
   const PROCESSED_ATTR = 'data-ivx-processed';
@@ -426,16 +436,26 @@
       const resp = await fetch(src);
       const blob = await resp.blob();
       const blobUrl = URL.createObjectURL(blob);
-      await sendDownload({
+      const result = await sendDownload({
         url: blobUrl,
         filename: suggestFilename(src, blob.type),
         saveAs: !silent,
       });
       setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+      // background.js now reports success/failure explicitly instead of
+      // firing-and-forgetting — a blob: URL created here in the content
+      // script's document is not always resolvable from the background
+      // script (most commonly on Firefox), which previously failed
+      // silently and still showed the green checkmark. Treat a reported
+      // failure the same as a fetch/network failure below, so the
+      // direct <a download> fallback (which never leaves this
+      // document, so the blob: URL problem doesn't apply) kicks in.
+      if (result && result.ok === false) throw new Error(result.error || 'download failed');
       markSaved([src]);
       if (!silent) flashButton(entry.saveBtn, 'check');
-    } catch {
+    } catch (err) {
       if (!silent) {
+        console.warn('[Fetch_Img_] save failed, falling back to direct download:', err);
         const a = document.createElement('a');
         a.href = src;
         a.download = suggestFilename(src);
@@ -590,12 +610,13 @@
 
       const zipBlob = buildZip(entries);
       const zipUrl = URL.createObjectURL(zipBlob);
-      await sendDownload({
+      const result = await sendDownload({
         url: zipUrl,
         filename: `images-${Date.now()}.zip`,
         saveAs: true,
       });
       setTimeout(() => URL.revokeObjectURL(zipUrl), 15000);
+      if (result && result.ok === false) throw new Error(result.error || 'zip download failed');
       markSaved(savedSrcs);
 
       batchUI.countEl.textContent = skipped > 0
@@ -603,6 +624,9 @@
         : `Saved ${entries.length}`;
       flashButton(btn, 'check');
       setTimeout(() => { if (batchMode) updateBatchCount(); }, 2200);
+    } catch (err) {
+      console.warn('[Fetch_Img_] batch save failed:', err);
+      flashButton(btn, 'error');
     } finally {
       setButtonBusy(btn, false);
     }
@@ -658,28 +682,41 @@
   // Overlay creation
   // ---------------------------------------------------------------
 
+  // Clicking a <button> gives it browser focus; some pages (Google
+  // Images among them) have layout that makes the browser's default
+  // "scroll the newly-focused element into view" behavior visibly
+  // jump the page. Blur immediately and pin the scroll position
+  // around the click so that reflex can't move anything.
+  function runAction(btn, fn) {
+    const x = window.scrollX;
+    const y = window.scrollY;
+    btn.blur();
+    if (window.scrollX !== x || window.scrollY !== y) window.scrollTo(x, y);
+    fn();
+  }
+
   function createOverlay(img) {
     const overlay = document.createElement('div');
     overlay.className = 'ivx-btn-container';
 
-    const viewBtn = makeButton('view', 'View image');
-    const saveBtn = makeButton('save', 'Save image');
-    const copyBtn = makeButton('copy', 'Copy image');
+    const viewBtn = makeButton('view', 'View image (Shift+V)');
+    const saveBtn = makeButton('save', 'Save image (Shift+S)');
+    const copyBtn = makeButton('copy', 'Copy image (Shift+C)');
 
     viewBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      actionView(registry.get(img));
+      runAction(e.currentTarget, () => actionView(registry.get(img)));
     });
     saveBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      actionSave(registry.get(img));
+      runAction(e.currentTarget, () => actionSave(registry.get(img)));
     });
     copyBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      actionCopy(registry.get(img));
+      runAction(e.currentTarget, () => actionCopy(registry.get(img)));
     });
 
     overlay.append(viewBtn, saveBtn, copyBtn);
@@ -758,26 +795,37 @@
   // Keyboard shortcuts (contextual — act on whichever image is hovered)
   // ---------------------------------------------------------------
 
-  document.addEventListener('keydown', (e) => {
-    if (batchMode || !hoveredImg) return;
-    const active = document.activeElement;
-    const typing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
-    if (typing || e.metaKey || e.ctrlKey || e.altKey) return;
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      if (batchMode || !hoveredImg) return;
+      const active = document.activeElement;
+      const typing = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable);
+      // Require Shift as the trigger modifier (Shift+V/S/C) so a bare
+      // 'v'/'s'/'c' keypress on the host page's own lightbox/search
+      // hotkeys (Google Images, etc.) is left alone; Ctrl/Alt/Meta
+      // combos are still ignored so we don't fight browser shortcuts.
+      if (typing || !e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return;
 
-    const entry = registry.get(hoveredImg);
-    if (!entry) return;
+      const entry = registry.get(hoveredImg);
+      if (!entry) return;
 
-    if (e.key === 'v' || e.key === 'V') {
-      e.preventDefault();
-      actionView(entry);
-    } else if (e.key === 's' || e.key === 'S') {
-      e.preventDefault();
-      actionSave(entry);
-    } else if (e.key === 'c' || e.key === 'C') {
-      e.preventDefault();
-      actionCopy(entry);
-    }
-  });
+      const key = e.key.toLowerCase();
+      if (key === 'v') {
+        e.preventDefault();
+        actionView(entry);
+      } else if (key === 's') {
+        e.preventDefault();
+        actionSave(entry);
+      } else if (key === 'c') {
+        e.preventDefault();
+        actionCopy(entry);
+      }
+    },
+    true // capture phase — run ahead of the host page's own bubble-phase
+         // keydown handlers (e.g. Google Images' lightbox hotkeys), which
+         // was the likely cause of shortcuts silently doing nothing.
+  );
 
   // ---------------------------------------------------------------
   // Toolbar badge + stats

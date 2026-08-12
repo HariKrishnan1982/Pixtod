@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "FETCH_IMAGE_",
-  "version": "1.5.1",
+  "version": "1.5.7",
   "description": "View, save, copy, and batch-download images on any page — with configurable hover behavior.",
   "permissions": ["downloads", "storage", "clipboardWrite"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
   },
   "content_scripts": [
     {
@@ -32,7 +33,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "image-viewer@p4tchw0rk.dev",
-      "strict_min_version": "109.0"
+      "strict_min_version": "121.0"
     }
   }
 }

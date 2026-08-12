@@ -35,15 +35,41 @@ function persistSavedUrls() {
 // Per-tab image stats reported by content.js, read back by the popup.
 const tabStats = new Map();
 
+// Cross-browser wrapper: Chrome's callback-style downloads.download()
+// and Firefox's Promise-style one both funnel through here, and —
+// critically — we actually wait for the result instead of firing and
+// forgetting, so a failed download (e.g. an inaccessible blob: URL)
+// can be reported back to the caller instead of looking like a
+// silent success.
+function downloadPromise(options) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const done = (id) => { if (settled) return; settled = true; resolve(id); };
+    const fail = (err) => { if (settled) return; settled = true; reject(err); };
+    try {
+      const maybePromise = api.downloads.download(options, (id) => {
+        if (api.runtime.lastError) { fail(new Error(api.runtime.lastError.message)); return; }
+        done(id);
+      });
+      if (maybePromise && typeof maybePromise.then === 'function') {
+        maybePromise.then(done).catch(fail);
+      }
+    } catch (err) {
+      fail(err);
+    }
+  });
+}
+
 api.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'download') {
-    api.downloads.download({
+    downloadPromise({
       url: request.url,
       filename: request.filename,
       saveAs: request.saveAs,
-    });
-    sendResponse && sendResponse();
-    return;
+    })
+      .then((downloadId) => sendResponse && sendResponse({ ok: true, downloadId }))
+      .catch((err) => sendResponse && sendResponse({ ok: false, error: (err && err.message) || String(err) }));
+    return true; // keep the message channel open for the async response
   }
 
   if (request.action === 'updateBadge') {

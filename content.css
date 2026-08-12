@@ -56,7 +56,21 @@ html.ivx-batch-active .ivx-btn-container {
   transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease;
 }
 
-.ivx-btn svg { display: block; }
+/* Pin the icon's paint properties on the SVG itself (not just relying
+   on inherited `color`/currentColor from the button). Some sites ship
+   broad resets like `svg, path { fill: ... }` or `* { color: ... }`
+   that — depending on load order and specificity — can otherwise
+   leave the icon effectively invisible even though the circular
+   button background still renders fine. */
+.ivx-btn svg {
+  display: block;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  color: inherit;
+}
+.ivx-btn svg * { fill: inherit; stroke: inherit; }
 
 .ivx-btn:hover {
   transform: translateY(-1px) scale(1.06);
