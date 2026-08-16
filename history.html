@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Pixtod — Saved history</title>
+  <link rel="stylesheet" href="history.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="icons/icon48.png" alt="" class="logo" />
+      <div class="brand-text">
+        <h1>Saved history</h1>
+        <span class="build-tag">PIXTOD — CONTACT SHEET</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" id="selectModeBtn" class="text-btn">Select</button>
+      <button type="button" id="clearBtn" class="clear-btn">Clear all</button>
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <input type="search" id="searchInput" class="search-input" placeholder="Search filename or site&hellip;" />
+    <button type="button" id="favoriteFilterBtn" class="filter-toggle" aria-pressed="false">
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14.9 9.4 21.5 10.4 16.8 15 17.9 21.5 12 18.4 6.1 21.5 7.2 15 2.5 10.4 9.1 9.4 12 3.5Z"/></svg>
+      <span>Favorites</span>
+    </button>
+    <select id="tagFilterSelect" class="tag-select">
+      <option value="">All tags</option>
+    </select>
+  </div>
+
+  <div id="bulkBar" class="bulk-bar" hidden>
+    <span id="bulkCount" class="bulk-count">0 selected</span>
+    <button type="button" id="bulkDownloadBtn">Re-download</button>
+    <button type="button" id="bulkDeleteBtn">Delete</button>
+    <button type="button" id="bulkClearBtn">Clear selection</button>
+  </div>
+
+  <main id="main">
+    <div id="emptyState" class="empty-state" hidden>
+      <p>Nothing saved yet.</p>
+      <p class="dim">Images and video frames you save, copy-triggered saves aside, will show up here as a running contact sheet.</p>
+    </div>
+    <div id="noResultsState" class="empty-state" hidden>
+      <p>No matches.</p>
+      <p class="dim">Try a different search term, or clear the favorites / tag filter above.</p>
+    </div>
+    <div id="grid" class="grid"></div>
+  </main>
+
+  <script src="history.js"></script>
+</body>
+</html>

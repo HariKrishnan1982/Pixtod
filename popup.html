@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Fetch_Img_</title>
+  <title>Pixtod</title>
   <link rel="stylesheet" href="popup.css" />
 </head>
 <body>
@@ -10,10 +10,16 @@
     <div class="brand">
       <img src="icons/icon48.png" alt="" class="logo" />
       <div class="brand-text">
-        <h1>Fetch_Img_</h1>
-        <span class="build-tag">v1.5.1 — VIEWFINDER TOOLKIT</span>
+        <h1>Pixtod</h1>
+        <span class="build-tag">v1.9.82 — VIEWFINDER TOOLKIT</span>
       </div>
     </div>
+    <button type="button" class="icon-btn" id="settingsBtn" aria-label="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+      </svg>
+    </button>
   </header>
 
   <div id="statsBar" class="stats-bar" hidden>
@@ -21,25 +27,21 @@
     <span id="statsText"></span>
   </div>
 
-  <main>
-    <div class="row">
-      <div class="row-text">
-        <span class="row-label">Safelight</span>
-        <p>Dark appearance for this panel</p>
+  <main id="mainView">
+    <div class="row row-column" id="recentSection" hidden>
+      <div class="row-text-with-action">
+        <div class="row-text">
+          <span class="row-label">Recent captures</span>
+          <p>Last saved this session &mdash; tap to reopen</p>
+        </div>
+        <button type="button" class="mini-icon-btn" id="copyLastBtn" title="Copy last saved image again" aria-label="Copy last saved image again" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="12" height="12" rx="1"/>
+            <path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>
+          </svg>
+        </button>
       </div>
-      <button type="button" class="switch" id="darkTheme" role="switch" aria-checked="false">
-        <span class="switch-thumb"></span>
-      </button>
-    </div>
-
-    <div class="row">
-      <div class="row-text">
-        <span class="row-label">Exposure data</span>
-        <p>Show resolution &amp; file size on hover</p>
-      </div>
-      <button type="button" class="switch" id="showDimensions" role="switch" aria-checked="false">
-        <span class="switch-thumb"></span>
-      </button>
+      <div class="recent-strip" id="recentStrip"></div>
     </div>
 
     <div class="row row-column">
@@ -55,20 +57,168 @@
       </div>
     </div>
 
-    <div class="divider"></div>
-
-    <div class="shortcuts-line">
-      <kbd>Shift</kbd>+
-      <div class="shortcuts-items">
-        <span><kbd>V</kbd> view</span>
-        <span><kbd>S</kbd> save</span>
-        <span><kbd>C</kbd> copy</span>
+    <div class="row row-column">
+      <div class="row-text">
+        <span class="row-label">Print format</span>
+        <p>Convert saved images to this format</p>
+      </div>
+      <div class="format-grid" id="formatGrid" role="group" aria-label="Save format">
+        <button type="button" class="format-btn" data-format="original">Original</button>
+        <button type="button" class="format-btn" data-format="png">PNG</button>
+        <button type="button" class="format-btn" data-format="jpeg">JPG</button>
+        <button type="button" class="format-btn" data-format="webp">WEBP</button>
       </div>
     </div>
-    <p class="hint">Hold the cursor over a frame, then press a key. Select several from the tab in a page's bottom corner — exports as one ZIP, repeats skipped automatically.</p>
+
+    <button type="button" class="help-toggle" id="helpToggle" aria-expanded="false" aria-controls="helpPanel">
+      <span>Help &amp; shortcuts</span>
+      <svg class="help-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m6 9 6 6 6-6"/>
+      </svg>
+    </button>
+    <div id="helpPanel" class="help-panel" hidden>
+      <div class="shortcuts-line">
+        <kbd id="helpModifierKbd">Shift</kbd>+
+        <div class="shortcuts-items">
+          <span><kbd id="helpKeyView">V</kbd> view</span>
+          <span><kbd id="helpKeySave">S</kbd> save</span>
+          <span><kbd id="helpKeyCopy">C</kbd> copy</span>
+          <span><kbd id="helpKeySearch">F</kbd> search</span>
+          <span><kbd id="helpKeyFrame">G</kbd> grab frame</span>
+        </div>
+      </div>
+      <ul class="hint-list">
+        <li>Hover a frame, press a key</li>
+        <li>Select multiple, then export as ZIP from the corner tab</li>
+        <li>Hover a video for one-click frame grab</li>
+      </ul>
+    </div>
   </main>
 
+  <div id="settingsView" class="settings-view" hidden>
+    <button type="button" class="back-btn" id="settingsBack">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      <span>Settings</span>
+    </button>
+
+    <div class="row">
+      <div class="row-text">
+        <span class="row-label">Safelight</span>
+        <p>Dark appearance for this panel</p>
+      </div>
+      <button type="button" class="switch" id="darkTheme" role="switch" aria-checked="false">
+        <span class="switch-thumb"></span>
+      </button>
+    </div>
+
+    <div class="row" id="siteToggleRow" hidden>
+      <div class="row-text">
+        <span class="row-label">Active on this site</span>
+        <p id="siteHostText">&mdash;</p>
+      </div>
+      <button type="button" class="switch" id="siteToggle" role="switch" aria-checked="true">
+        <span class="switch-thumb"></span>
+      </button>
+    </div>
+
+    <div class="row row-column">
+      <div class="row-text-with-action">
+        <div class="row-text">
+          <span class="row-label">Storage used</span>
+          <p>Saved-history data on this device</p>
+        </div>
+        <button type="button" class="text-action" id="clearStorageBtn" hidden>Clear</button>
+      </div>
+      <div class="storage-meter">
+        <div class="storage-meter-track"><div class="storage-meter-fill" id="storageMeterFill"></div></div>
+        <div class="storage-meter-text" id="storageMeterText">&mdash;</div>
+      </div>
+    </div>
+
+    <div class="section-title">Image</div>
+
+    <div class="row">
+      <div class="row-text">
+        <span class="row-label">Exposure data</span>
+        <p>Show resolution &amp; file size on hover</p>
+      </div>
+      <button type="button" class="switch" id="showDimensions" role="switch" aria-checked="false">
+        <span class="switch-thumb"></span>
+      </button>
+    </div>
+
+    <div class="row">
+      <div class="row-text">
+        <span class="row-label">Copy image URL</span>
+        <p>Add a button to copy just the URL</p>
+      </div>
+      <button type="button" class="switch" id="copyUrlToggle" role="switch" aria-checked="false">
+        <span class="switch-thumb"></span>
+      </button>
+    </div>
+
+    <div class="row row-column">
+      <div class="row-text">
+        <span class="row-label">Reverse search engine</span>
+        <p>Used by the search button &amp; its shortcut</p>
+      </div>
+      <div class="engine-grid" id="engineGrid" role="group" aria-label="Reverse search engine">
+        <button type="button" class="engine-btn" data-engine="google">Google</button>
+        <button type="button" class="engine-btn" data-engine="bing">Bing</button>
+        <button type="button" class="engine-btn" data-engine="yandex">Yandex</button>
+        <button type="button" class="engine-btn" data-engine="tineye">TinEye</button>
+      </div>
+    </div>
+
+    <div class="section-title">Shortcuts</div>
+
+    <div class="row row-column">
+      <div class="row-text">
+        <span class="row-label">Modifier key</span>
+        <p>Held down with every shortcut below</p>
+      </div>
+      <div class="engine-grid modifier-grid" id="modifierGrid" role="group" aria-label="Modifier key">
+        <button type="button" class="engine-btn modifier-btn" data-modifier="shift">Shift</button>
+        <button type="button" class="engine-btn modifier-btn" data-modifier="ctrl">Ctrl</button>
+        <button type="button" class="engine-btn modifier-btn" data-modifier="alt">Alt</button>
+      </div>
+    </div>
+
+    <div class="row row-column">
+      <div class="row-text">
+        <span class="row-label">Hover a frame, press a key</span>
+        <p>Tap a shortcut below, then press its new key</p>
+      </div>
+      <div class="shortcut-grid" id="shortcutGrid">
+        <button type="button" class="shortcut-btn" data-shortcut="view">
+          <span class="shortcut-btn-label">View</span>
+          <kbd>V</kbd>
+        </button>
+        <button type="button" class="shortcut-btn" data-shortcut="save">
+          <span class="shortcut-btn-label">Save</span>
+          <kbd>S</kbd>
+        </button>
+        <button type="button" class="shortcut-btn" data-shortcut="copy">
+          <span class="shortcut-btn-label">Copy</span>
+          <kbd>C</kbd>
+        </button>
+        <button type="button" class="shortcut-btn" data-shortcut="search">
+          <span class="shortcut-btn-label">Search</span>
+          <kbd>F</kbd>
+        </button>
+        <button type="button" class="shortcut-btn" data-shortcut="frame">
+          <span class="shortcut-btn-label">Grab frame</span>
+          <kbd>G</kbd>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <footer>
+    <a href="#" id="historyLink">
+      <span>Saved history</span>
+      <span class="arrow">&#8594;</span>
+    </a>
     <a href="https://github.com/HariKrishnan1982/View_Photo" target="_blank" rel="noopener noreferrer">
       <span>Source &amp; issue tracker</span>
       <span class="arrow">&#8594;</span>

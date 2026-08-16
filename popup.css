@@ -1,4 +1,4 @@
-/* Fetch_Img_ — popup
+/* Pixtod — popup
    Design system: "contact sheet / darkroom". Light mode reads as a
    proof sheet (paper, ink, a single grease-pencil red for marks).
    Dark mode reads as the safelight going on. No gradients, no
@@ -45,6 +45,10 @@ body {
 /* ---------- Header ---------- */
 
 header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 16px 16px 14px;
   border-bottom: 1px solid var(--rule);
 }
@@ -76,6 +80,51 @@ header {
   color: var(--ink-dim);
 }
 
+/* ---------- Header icon button (Settings) ---------- */
+
+.icon-btn {
+  all: unset;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+
+.icon-btn svg { width: 16px; height: 16px; }
+
+.icon-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink-dim);
+}
+
+/* ---------- Settings sub-view ---------- */
+
+.back-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink);
+  font: 700 11px/1 var(--font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.back-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.back-btn:hover { color: var(--mark); }
+
 /* ---------- Stats readout ---------- */
 
 .stats-bar {
@@ -100,7 +149,7 @@ header {
 
 /* ---------- Rows ---------- */
 
-main {
+main, .settings-view {
   padding: 4px 16px 6px;
 }
 
@@ -129,6 +178,18 @@ main {
   margin: 0;
   font-size: 11px;
   color: var(--ink-dim);
+}
+
+/* ---------- Section title (groups rows within settings) ---------- */
+
+.section-title {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule);
+  font: 700 9.5px/1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mark);
 }
 
 /* ---------- Switch: a rocker, not a pill ---------- */
@@ -198,9 +259,249 @@ main {
 .pos-btn.active { border-color: var(--mark); background: var(--paper); }
 .pos-btn.active::before { border-color: var(--mark); }
 
+/* ---------- Row with an inline action (label + small button) ---------- */
+
+.row-text-with-action {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding-bottom: 10px;
+}
+
+.row-text-with-action .row-text { padding-bottom: 0; }
+
+.mini-icon-btn {
+  all: unset;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+  cursor: pointer;
+}
+
+.mini-icon-btn svg { width: 14px; height: 14px; }
+.mini-icon-btn:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-dim); }
+.mini-icon-btn:disabled { opacity: 0.35; cursor: default; }
+.mini-icon-btn.copy-ok { color: var(--ok); border-color: var(--ok); }
+.mini-icon-btn.copy-err { color: var(--mark); border-color: var(--mark); }
+
+.text-action {
+  all: unset;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  padding: 5px 9px;
+  border: 1px solid var(--rule);
+  color: var(--ink-dim);
+  font: 700 9.5px/1 var(--font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.text-action:hover { color: var(--mark); border-color: var(--mark); }
+
+/* ---------- Recent captures strip ---------- */
+
+.recent-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.recent-thumb {
+  all: unset;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.recent-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.recent-thumb:hover { border-color: var(--mark); }
+.recent-thumb.broken { display: flex; align-items: center; justify-content: center; }
+.recent-thumb.broken img { display: none; }
+.recent-thumb.broken::after {
+  content: '?';
+  color: var(--ink-dim);
+  font: 700 12px/1 var(--font-mono);
+}
+
+/* ---------- Storage usage meter ---------- */
+
+.storage-meter { width: 100%; }
+
+.storage-meter-track {
+  width: 100%;
+  height: 6px;
+  border: 1px solid var(--ink);
+  background: var(--panel);
+}
+
+.storage-meter-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--mark);
+  transition: width 0.15s linear;
+}
+
+.storage-meter-text {
+  margin-top: 6px;
+  font: 10.5px/1.3 var(--font-mono);
+  color: var(--ink-dim);
+  letter-spacing: 0.01em;
+}
+
+/* ---------- Save format picker ---------- */
+
+.format-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.format-btn {
+  all: unset;
+  box-sizing: border-box;
+  text-align: center;
+  width: 100%;
+  padding: 7px 0;
+  border: 1px solid var(--rule);
+  cursor: pointer;
+  background: var(--panel);
+  color: var(--ink-dim);
+  font: 700 9.5px/1 var(--font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.format-btn:hover { border-color: var(--ink-dim); }
+.format-btn.active { border-color: var(--mark); background: var(--paper); color: var(--mark); }
+
+/* ---------- Reverse search engine picker ---------- */
+
+.engine-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.engine-btn {
+  all: unset;
+  box-sizing: border-box;
+  text-align: center;
+  width: 100%;
+  padding: 7px 0;
+  border: 1px solid var(--rule);
+  cursor: pointer;
+  background: var(--panel);
+  color: var(--ink-dim);
+  font: 700 9.5px/1 var(--font-mono);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.engine-btn:hover { border-color: var(--ink-dim); }
+.engine-btn.active { border-color: var(--mark); background: var(--paper); color: var(--mark); }
+
+.modifier-grid { grid-template-columns: repeat(3, 1fr); }
+
+/* ---------- Shortcut rebinding list ---------- */
+
+.shortcut-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shortcut-btn {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--rule);
+  cursor: pointer;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.shortcut-btn:hover { border-color: var(--ink-dim); }
+
+.shortcut-btn kbd {
+  min-width: 18px;
+  text-align: center;
+  padding: 3px 6px;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  font: 700 10px/1 var(--font-mono);
+}
+
+/* Actively listening for the next keypress */
+.shortcut-btn.recording { border-color: var(--mark); }
+.shortcut-btn.recording kbd {
+  border-color: var(--mark);
+  color: var(--mark);
+  animation: ivx-kbd-pulse 1s ease-in-out infinite;
+}
+@keyframes ivx-kbd-pulse { 50% { opacity: 0.35; } }
+
 /* ---------- Divider ---------- */
 
 .divider { display: none; } /* rows already carry hairline rules */
+
+/* ---------- Help dropdown ---------- */
+
+.help-toggle {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink);
+  font: 700 10px/1 var(--font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.help-toggle:hover { color: var(--mark); }
+
+.help-chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--ink-dim);
+  transition: transform 0.15s ease;
+}
+
+.help-toggle:hover .help-chevron { color: var(--mark); }
+.help-toggle[aria-expanded='true'] .help-chevron { transform: rotate(180deg); }
+
+.help-panel { padding-bottom: 4px; }
 
 /* ---------- Shortcuts ---------- */
 
@@ -236,11 +537,28 @@ main {
   font: 700 10px/1 var(--font-mono);
 }
 
-main .hint {
+main .hint-list {
   margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+main .hint-list li {
+  position: relative;
+  padding-left: 12px;
   font-size: 10.5px;
-  line-height: 1.55;
+  line-height: 1.4;
   color: var(--ink-dim);
+}
+
+main .hint-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--mark);
 }
 
 /* ---------- Footer ---------- */
@@ -259,7 +577,9 @@ footer a {
   text-transform: uppercase;
   color: var(--ink-dim);
   text-decoration: none;
+  padding: 7px 0;
 }
 
+footer a + a { border-top: 1px solid var(--rule); }
 footer a:hover { color: var(--mark); }
 footer .arrow { font-size: 12px; }

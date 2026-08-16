@@ -1,3 +1,25 @@
+/* ---------- Per-site off switch (set from the popup) ----------
+   All Pixtod-injected UI hides instantly when the current site is
+   in the popup's disabled-sites list — the scanner/observer keep
+   running underneath, this just keeps everything invisible and out
+   of the way. */
+html[data-ivx-disabled='true'] .ivx-btn-container,
+html[data-ivx-disabled='true'] .ivx-btn-container-video,
+html[data-ivx-disabled='true'] .ivx-batch-toggle,
+html[data-ivx-disabled='true'] .ivx-batch-bar,
+html[data-ivx-disabled='true'] .ivx-select-marker,
+html[data-ivx-disabled='true'] .ivx-tooltip,
+html[data-ivx-disabled='true'] .ivx-toast {
+  display: none !important;
+}
+
+/* ---------- Optional "Copy image URL" button (Settings → Image) ----------
+   Always created in the DOM (see createOverlay in content.js) so
+   flipping the setting doesn't require rebuilding every overlay
+   already on the page — just hidden by default here. */
+.ivx-btn[data-action='copyUrl'] { display: none; }
+html[data-ivx-copyurl='true'] .ivx-btn[data-action='copyUrl'] { display: inline-flex; }
+
 /* ---------- Per-thumbnail overlay (view / save / copy) ---------- */
 
 .ivx-btn-container {
@@ -31,13 +53,45 @@ html[data-ivx-pos='top-left'] .ivx-tooltip {
 
 :hover > .ivx-btn-container,
 .ivx-btn-container:hover,
-.ivx-btn-container:focus-within {
+.ivx-btn-container:focus-within,
+.ivx-btn-container.ivx-visible {
   opacity: 1;
   transform: translateY(0);
 }
 
 html.ivx-batch-active .ivx-btn-container {
   display: none !important;
+}
+
+/* Video frame-capture button: centered over the player instead of
+   tucked in a corner, since a single control reads better that way
+   and won't collide with the video's own native controls bar.
+   Positioned as a fixed, body-level element whose top/left are set
+   directly from the video's getBoundingClientRect() in JS (see
+   trackVideoOverlays in content.js) rather than nested inside the
+   host page's own player DOM — sites like YouTube constantly reflow
+   their player wrapper (controls fading, theater mode, fullscreen),
+   which dragged a DOM-nested button along with it. Visibility is
+   also JS-driven via .ivx-visible, since the old `:hover >` parent
+   selector only worked while this was a DOM child of its trigger. */
+.ivx-btn-container-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%);
+  flex-direction: row;
+  opacity: 0;
+  pointer-events: none;
+}
+.ivx-btn-container-video.ivx-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.ivx-btn-container-video .ivx-btn {
+  width: 44px;
+  height: 44px;
 }
 
 .ivx-btn {
@@ -79,6 +133,8 @@ html.ivx-batch-active .ivx-btn-container {
 
 .ivx-btn:active { transform: scale(0.94); }
 .ivx-btn:disabled { cursor: default; transform: none; }
+.ivx-btn.ivx-btn-disabled { opacity: 0.35; cursor: not-allowed; }
+.ivx-btn.ivx-btn-disabled:hover { transform: none; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.12); }
 
 .ivx-spin { animation: ivx-rotate 0.8s linear infinite; }
 @keyframes ivx-rotate { to { transform: rotate(360deg); } }
@@ -118,6 +174,26 @@ html.ivx-batch-active .ivx-btn-container {
 
 html.ivx-batch-active .ivx-tooltip { display: none; }
 
+/* ---------- Transient toast (e.g. video-capture failure reason) ---------- */
+
+.ivx-toast {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  max-width: 220px;
+  text-align: center;
+  background: rgba(20, 20, 20, 0.92);
+  color: #f2f2f2;
+  font: 600 11px/1.3 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 6px 10px;
+  border-radius: 6px;
+  pointer-events: none;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
 /* ---------- Batch selection marker (shown only in batch mode) ---------- */
 
 .ivx-select-marker {
@@ -145,6 +221,16 @@ html.ivx-batch-active .ivx-select-marker { display: flex; }
   background: #00c853;
   color: #fff;
   border-color: #00c853;
+}
+
+/* ---------- Drag-select rectangle (batch mode) ---------- */
+
+.ivx-drag-rect {
+  position: fixed;
+  z-index: 2147483647;
+  border: 1.5px solid #00c853;
+  background: rgba(0, 200, 83, 0.12);
+  pointer-events: none;
 }
 
 /* ---------- Floating batch-mode toggle ---------- */
