@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Pixtod",
-  "version": "1.9.84",
+  "version": "1.9.82",
   "description": "View, save, copy, and batch-download images on any page \u2014 with configurable hover behavior.",
   "permissions": [
     "downloads",
@@ -47,13 +47,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "pixtod@p4tchw0rk.dev",
-      "strict_min_version": "140.0",
-      "data_collection_permissions": {
-        "required": ["none"]
-      }
-    },
-    "gecko_android": {
-      "strict_min_version": "142.0"
+      "strict_min_version": "121.0"
     }
   }
 }

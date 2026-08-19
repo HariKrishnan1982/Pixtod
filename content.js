@@ -301,26 +301,6 @@
       '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 15 15 9"/><path d="M10.5 6.5 12 5a4 4 0 1 1 5.5 5.5L16 12"/><path d="M13.5 17.5 12 19a4 4 0 1 1-5.5-5.5L8 12"/></svg>',
   };
 
-  // Icon markup above is a fixed, hardcoded set of SVGs baked into
-  // this file — never built from page or network data — but linters
-  // (AMO's included) flag any dynamic innerHTML assignment regardless
-  // of whether the source is trusted, since they can't verify that
-  // statically. Parsing each icon once into a real SVG node and
-  // cloning it on each use sidesteps that entirely: no innerHTML
-  // anywhere, and it's cheaper than re-parsing the same markup string
-  // repeatedly besides.
-  const iconNodeCache = {};
-  function getIconNode(key) {
-    if (!iconNodeCache[key]) {
-      const parsed = new DOMParser().parseFromString(ICONS[key], 'image/svg+xml');
-      iconNodeCache[key] = parsed.documentElement;
-    }
-    return iconNodeCache[key].cloneNode(true);
-  }
-  function setIcon(el, key) {
-    el.replaceChildren(getIconNode(key));
-  }
-
   // ---------------------------------------------------------------
   // Positioning / theme helpers
   // ---------------------------------------------------------------
@@ -611,7 +591,7 @@
     btn.type = 'button';
     btn.className = 'ivx-btn';
     btn.dataset.icon = iconKey;
-    setIcon(btn, iconKey);
+    btn.innerHTML = ICONS[iconKey];
     btn.title = title;
     btn.setAttribute('aria-label', title);
     return btn;
@@ -619,13 +599,13 @@
 
   function setButtonBusy(btn, busy) {
     btn.disabled = busy;
-    setIcon(btn, busy ? 'loading' : btn.dataset.icon);
+    btn.innerHTML = busy ? ICONS.loading : ICONS[btn.dataset.icon];
   }
 
   function flashButton(btn, kind) {
-    setIcon(btn, kind);
+    btn.innerHTML = ICONS[kind];
     setTimeout(() => {
-      setIcon(btn, btn.dataset.icon);
+      btn.innerHTML = ICONS[btn.dataset.icon];
     }, 1100);
   }
 
@@ -1020,50 +1000,25 @@
     const toggle = document.createElement('button');
     toggle.type = 'button';
     toggle.className = 'ivx-batch-toggle';
-    toggle.append(getIconNode('select'));
-    const toggleLabel = document.createElement('span');
-    toggleLabel.textContent = 'Select images';
-    toggle.append(toggleLabel);
+    toggle.innerHTML = `${ICONS.select}<span>Select images</span>`;
     toggle.addEventListener('click', () => setBatchMode(!batchMode));
     document.documentElement.appendChild(toggle);
 
     const bar = document.createElement('div');
     bar.className = 'ivx-batch-bar';
-
-    const countEl = document.createElement('span');
-    countEl.className = 'ivx-batch-count';
-    countEl.textContent = '0 selected';
-
-    const saveBtn = document.createElement('button');
-    saveBtn.type = 'button';
-    saveBtn.className = 'ivx-batch-save';
-    saveBtn.dataset.icon = 'zip';
-    saveBtn.append(getIconNode('zip'));
-    const saveLabel = document.createElement('span');
-    saveLabel.textContent = 'Save as ZIP';
-    saveBtn.append(saveLabel);
-
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'ivx-batch-clear';
-    const clearLabel = document.createElement('span');
-    clearLabel.textContent = 'Clear';
-    clearBtn.append(clearLabel);
-
-    const exitBtn = document.createElement('button');
-    exitBtn.type = 'button';
-    exitBtn.className = 'ivx-batch-exit';
-    exitBtn.setAttribute('aria-label', 'Exit batch mode');
-    exitBtn.append(getIconNode('close'));
-
-    bar.append(countEl, saveBtn, clearBtn, exitBtn);
+    bar.innerHTML = `
+      <span class="ivx-batch-count">0 selected</span>
+      <button type="button" class="ivx-batch-save" data-icon="zip">${ICONS.zip}<span>Save as ZIP</span></button>
+      <button type="button" class="ivx-batch-clear"><span>Clear</span></button>
+      <button type="button" class="ivx-batch-exit" aria-label="Exit batch mode">${ICONS.close}</button>
+    `;
     document.documentElement.appendChild(bar);
 
-    saveBtn.addEventListener('click', (e) => saveSelectionAsZip(e.currentTarget));
-    clearBtn.addEventListener('click', () => clearSelection());
-    exitBtn.addEventListener('click', () => setBatchMode(false));
+    bar.querySelector('.ivx-batch-save').addEventListener('click', (e) => saveSelectionAsZip(e.currentTarget));
+    bar.querySelector('.ivx-batch-clear').addEventListener('click', () => clearSelection());
+    bar.querySelector('.ivx-batch-exit').addEventListener('click', () => setBatchMode(false));
 
-    return { toggle, bar, countEl };
+    return { toggle, bar, countEl: bar.querySelector('.ivx-batch-count') };
   }
 
   const batchUI = buildBatchUI();
@@ -1416,7 +1371,7 @@
   function createSelectMarker() {
     const marker = document.createElement('div');
     marker.className = 'ivx-select-marker';
-    marker.append(getIconNode('checkSmall'));
+    marker.innerHTML = ICONS.checkSmall;
     return marker;
   }
 

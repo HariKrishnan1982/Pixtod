@@ -53,19 +53,6 @@ let activeTag = '';
 const STAR_ICON = '<svg viewBox="0 0 24 24" width="13" height="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 14.9 9.4 21.5 10.4 16.8 15 17.9 21.5 12 18.4 6.1 21.5 7.2 15 2.5 10.4 9.1 9.4 12 3.5Z"/></svg>';
 const CHECK_ICON = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
 
-// Fixed, hardcoded SVG markup — never built from page/network data —
-// but linters (AMO's included) flag any dynamic innerHTML assignment
-// regardless of source. Parsing once into a real node and cloning on
-// each use avoids innerHTML entirely.
-const iconNodeCache = {};
-function getIconNode(svgMarkup) {
-  if (!iconNodeCache[svgMarkup]) {
-    const parsed = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml');
-    iconNodeCache[svgMarkup] = parsed.documentElement;
-  }
-  return iconNodeCache[svgMarkup].cloneNode(true);
-}
-
 function buildCard(record) {
   const card = document.createElement('div');
   card.className = 'card';
@@ -77,7 +64,7 @@ function buildCard(record) {
 
   const selectBadge = document.createElement('span');
   selectBadge.className = 'select-badge';
-  selectBadge.append(getIconNode(CHECK_ICON));
+  selectBadge.innerHTML = CHECK_ICON;
   thumbWrap.appendChild(selectBadge);
 
   const img = document.createElement('img');
@@ -95,7 +82,7 @@ function buildCard(record) {
   const starBtn = document.createElement('button');
   starBtn.type = 'button';
   starBtn.className = 'star-btn';
-  starBtn.append(getIconNode(STAR_ICON));
+  starBtn.innerHTML = STAR_ICON;
   starBtn.setAttribute('aria-pressed', record.favorite ? 'true' : 'false');
   starBtn.setAttribute('aria-label', record.favorite ? 'Unfavorite' : 'Favorite');
   starBtn.addEventListener('click', (e) => {
